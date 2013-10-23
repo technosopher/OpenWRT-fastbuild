@@ -81,7 +81,5 @@ echo "Done!"
 
 cleanBuildTree
 chmod -R g+w "$BUILD_DIR/commotion-openwrt"
-chmod -R g+w "DOWNLOADS_DIR"
+chmod -R g+w "$DOWNLOADS_DIR"
 exit
-
-
