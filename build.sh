@@ -62,8 +62,14 @@ sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
 sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
 echo "Selectively purging downloads directory..."
 find $DOWNLOAD_DIR -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\).*" | xargs rm -f
-echo "Ready to build! Make any changes you wish to feeds, menuconfig, or anything else at the prompt below, and then exit to continue the build."
+echo "Ready to build! Make any changes you wish to feeds, menuconfig, or anything else at the prompt below, and then exit to continue the build. Exit 5 to abort the build."
 bash
+if [ $? -eq 5 ]; then
+ echo "Aborting the build."
+ exit
+else
+ echo "Starting the build."
+fi
 make -j 13
 
 echo "Moving built binaries to $FINAL_BIN_DEST"
@@ -75,7 +81,5 @@ echo "Done!"
 
 cleanBuildTree
 chmod -R g+w "$BUILD_DIR/commotion-openwrt"
-chmod -R g+w "DOWNLOADS_DIR"
+chmod -R g+w "$DOWNLOADS_DIR"
 exit
-
-
