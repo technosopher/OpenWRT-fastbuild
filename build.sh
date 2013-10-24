@@ -19,6 +19,9 @@ INIT_CLONE_OPTS=""
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
+CUSTOM_WORKSPACE="$WORKSPACE"
+BUILD_OUTPUT_SAVE_FILE="$WORKSPACE/build.output"
+CUSTOMIZE_IMAGE_HANDLER="$WORKSPACE/custom_image.sh"
 
 if [ "$BUILD_DIR/commotion-openwrt/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/commotion-openwrt/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
@@ -78,6 +81,10 @@ echo "Selectively purging downloads directory..."
 find $DOWNLOAD_DIR -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\).*" | xargs rm -f
 
 echo "Ready to build! Make any changes you wish to feeds, menuconfig, or anything else at the prompt below, and then exit to continue the build. Exit 5 to abort the build."
+
+if [ -e "$CUSTOMIZE_IMAGE_HANDLER" ]; then
+ . "$CUSTOMIZE_IMAGE_HANDLER"
+fi
 bash
 if [ $? -eq 5 ]; then
  echo "Aborting the build."
@@ -87,7 +94,11 @@ else
  echo "Starting the build."
 fi
 
-make -j 13
+if [ -n "$BUILD_OUTPUT_SAVE_FILE" ]; then
+ make -j 13 2>&1 | tee "$BUILD_OUTPUT_SAVE_FILE"
+else
+ make -j 13
+fi
 
 echo "Moving built binaries to $FINAL_BIN_DEST"
 if [ -e bin/ar71xx ]; then
