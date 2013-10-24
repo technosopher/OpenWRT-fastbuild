@@ -28,7 +28,6 @@ fi
 
 if [ `id -u` != `stat $BUILD_DIR/commotion-openwrt -c %u` ]; then
  echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/commotion-openwrt -c %U`\", to run this script!  Exiting..."
- return 1
  exit
 fi
 
