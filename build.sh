@@ -60,7 +60,7 @@ cleanBuildTree
 mkdir -p $TEMP_DIR
 echo "Cloning main repo into $TEMP_DIR/commotion-openwrt..."
 cd "$TEMP_DIR"
-git clone "https://github.com/opentechinstitute/commotion-openwrt.git $INIT_CLONE_OPTS"
+git clone https://github.com/opentechinstitute/commotion-openwrt.git
 cd commotion-openwrt
 # Add an additional bash call here if you need to make changes to ./setup or any other part of the initial build tree before ./setup runs.
 ./setup.sh
