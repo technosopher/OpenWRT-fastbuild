@@ -19,9 +19,8 @@ INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-openwrt.git'
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
-CUSTOM_WORKSPACE="$WORKSPACE"
-BUILD_OUTPUT_SAVE_FILE="$WORKSPACE/build.output"
-CUSTOMIZE_IMAGE_HANDLER="$WORKSPACE/custom_image.sh"
+#BUILD_OUTPUT_SAVE_FILE="$WORKSPACE/build.output"
+#CUSTOMIZE_IMAGE_HANDLER="$WORKSPACE/custom_image.sh"
 
 if [ "$BUILD_DIR/commotion-openwrt/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/commotion-openwrt/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
