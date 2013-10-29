@@ -21,6 +21,7 @@ FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
 #BUILD_OUTPUT_SAVE_FILE="$WORKSPACE/build.output"
 #CUSTOMIZE_IMAGE_HANDLER="$WORKSPACE/custom_image.sh"
+#FINISH_IMAGE_HANDLER="$WORKSPACE/finish_image.sh"
 
 if [ "$BUILD_DIR/commotion-openwrt/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/commotion-openwrt/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
@@ -108,4 +109,9 @@ cleanBuildTree
 chmod -Rf g+w "$BUILD_DIR/commotion-openwrt"
 chmod -Rf g+w "$DOWNLOAD_DIR"
 rm "$LOCKFILE"
+
+if [ -e "$FINISH_IMAGE_HANDLER" ]; then
+ . "$FINISH_IMAGE_HANDLER"
+fi
+
 exit
