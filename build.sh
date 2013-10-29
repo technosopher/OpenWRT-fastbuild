@@ -14,14 +14,77 @@
 umask 002
 WORKSPACE="/tmp"
 BUILD_DIR="/mnt"
-TEMP_DIR="$WORKSPACE/tmp"
+TEMP_DIR="/tmp/openwrt-fastbuild"
 INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-openwrt.git'
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
-#BUILD_OUTPUT_SAVE_FILE="$WORKSPACE/build.output"
-#CUSTOMIZE_IMAGE_HANDLER="$WORKSPACE/custom_image.sh"
-#FINISH_IMAGE_HANDLER="$WORKSPACE/finish_image.sh"
+#BUILD_OUTPUT_LOGFILE="$WORKSPACE/build.log"
+#CUSTOM_BUILD_HANDLER="$WORKSPACE/custom_build.sh"
+#FINISH_BUILD_HANDLER="$WORKSPACE/finish_build.sh"
+
+USAGE="Usage:\n-b, --buildir\n\tSpecify location of pre-populated build tree (the commotion-openwrt folder is expected to exist in this location)\n-c, --clonesrc\n\tExact URL to be used to get the initial clone of commotion-openwrt; append a -b flag if you need to specify a branch\n-d, --downloaddir\n\tSpecify location of the downloads cache\n-i, --intervene\n\tSpecify degree of manual intervention desired from 0-2, where 0 signifies none and 3 signifies a lot\n-f, --finishbuild\n\tScript to be run at the completion of the build process\n-o, --output\n\tOutput logfile; all script output sent to standard out if this is unset\n-s, --prepbuild\n\tScript to be run after build tree is cleaned and repopulated with new feed info\n-t, --tempdir\n\tLocation to which temporary files will be downloaded\n-w, --workspace\n\tDefault "root" of entire build envionment, in which all other important directories and files are expected to exist, unless otherwise specified\n-h, --help\n\tPrint this help message and exit\n"
+ARGS=`getopt -o "b:c:d:hi:p:s:t:w:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:" -- "$@"`
+while (( $# )); do
+  case "$1" in
+    -b|--builddir)
+      shift;
+      BUILD_DIR="$1"
+      shift;
+      ;;
+    -c|--clonesrc)
+      shift;
+      INIT_CLONE_SRC="$1"
+      shift;
+      ;;
+    -d|--downloaddir)
+      shift;
+      DOWNLOAD_DIR="$1"
+      shift;
+      ;;
+    -f|--finishbuild)
+      shift;
+      FINISH_BUILD_HANDLER_="$1"
+      shift;
+      ;;
+    -i|--intervene)
+      shift;
+      INTERVENE="$1"
+      shift;
+      ;;
+    -o|--output)
+      shift;
+      BUILD_OUTPUT_LOGFILE="$1"
+      shift;
+      ;;
+    -p|--prepbuild)
+      shift;
+      CUSTOM_BUILD_HANDLER="$1"
+      shift;
+      ;;
+    -t|--tempdir)
+      shift;
+      TEMPDIR="$1"
+      shift;
+      ;;
+    -w|--workspace)
+      shift;
+      WORKSPACE="$1"
+      shift;
+      ;;
+    -h|--help)
+      echo -e "$USAGE"
+      exit 0
+      ;;
+    *)
+      echo -e "$USAGE"
+      exit 1 
+      ;;
+  esac
+done
+
+#destination for images
+# Intelligently choose an open builddir
 
 if [ "$BUILD_DIR/commotion-openwrt/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/commotion-openwrt/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
@@ -76,12 +139,14 @@ cd $BUILD_DIR/commotion-openwrt/openwrt
 sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
 sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
 echo "Selectively purging downloads directory..."
-find $DOWNLOAD_DIR -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\).*" | xargs rm -f
+find $DOWNLOAD_DIR -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
 
 echo "Ready to build! Make any changes you wish to feeds, menuconfig, or anything else at the prompt below, and then exit to continue the build. Exit 5 to abort the build."
 
-if [ -e "$CUSTOMIZE_IMAGE_HANDLER" ]; then
- . "$CUSTOMIZE_IMAGE_HANDLER"
+if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
+ . "$CUSTOM_BUILD_HANDLER"
+elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
+ echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
 fi
 bash
 if [ $? -eq 5 ]; then
@@ -92,8 +157,8 @@ else
  echo "Starting the build."
 fi
 
-if [ -n "$BUILD_OUTPUT_SAVE_FILE" ]; then
- make -j 13 2>&1 | tee "$BUILD_OUTPUT_SAVE_FILE"
+if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+ make -j 13 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
 else
  make -j 13
 fi
@@ -107,11 +172,13 @@ echo "Done!"
 
 cleanBuildTree
 chmod -Rf g+w "$BUILD_DIR/commotion-openwrt"
-chmod -Rf g+w "$DOWNLOAD_DIR"
+find "$DOWNLOAD_DIR" ! -perm -g+w | xargs chmod g+w
 rm "$LOCKFILE"
 
-if [ -e "$FINISH_IMAGE_HANDLER" ]; then
- . "$FINISH_IMAGE_HANDLER"
+if [ -e "$FINISH_BUILD_HANDLER" ]; then
+ . "$FINISH_BUILD_HANDLER"
+elif [ -n "$FINISH_BUILD_HANDLER" ]; then
+  echo "Build finishing script, $FINISH_BUILD_HANDLER, does not exist! Skipping..."
 fi
 
 exit
