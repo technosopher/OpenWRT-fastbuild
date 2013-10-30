@@ -43,12 +43,16 @@ Usage:
 	Location to which temporary files will be downloaded
 -w, --workspace
 	Default "root" of entire build envionment, in which all other important directories and files are expected to exist, unless otherwise specified
+--bindest
+	Where to put the final binaries
+-l, --lock
+	Location of lock file
 -h, --help
 	Print this help message and exit\n
 END_OF_USAGE
 )
 
-ARGS=`getopt -o "b:c:d:hi:p:s:t:w:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:" -- "$@"`
+ARGS=`getopt -o "b:c:d:hi:p:s:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
 while (( $# )); do
   case "$1" in
     -b|--builddir)
@@ -94,6 +98,16 @@ while (( $# )); do
     -w|--workspace)
       shift;
       WORKSPACE="$1"
+      shift;
+      ;;
+    --bindest)
+      shift;
+      FINAL_BIN_DEST="$1"
+      shift;
+      ;;
+    -l|--lock)
+      shift;
+      LOCKFILE="$1"
       shift;
       ;;
     -h|--help)
