@@ -72,7 +72,7 @@ while (( $# )); do
       ;;
     -f|--finishbuild)
       shift;
-      FINISH_BUILD_HANDLER_="$1"
+      FINISH_BUILD_HANDLER="$1"
       shift;
       ;;
     -i|--intervene)
