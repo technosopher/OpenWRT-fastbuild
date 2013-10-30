@@ -37,18 +37,22 @@ Usage:
 	Script to be run at the completion of the build process
 -o, --output
 	Output logfile; all script output sent to standard out if this is unset
--s, --prepbuild
+-p, --prepbuild
 	Script to be run after build tree is cleaned and repopulated with new feed info
 -t, --tempdir
 	Location to which temporary files will be downloaded
 -w, --workspace
 	Default "root" of entire build envionment, in which all other important directories and files are expected to exist, unless otherwise specified
+--bindest
+	Where to put the final binaries
+-l, --lock
+	Location of lock file
 -h, --help
 	Print this help message and exit\n
 END_OF_USAGE
 )
 
-ARGS=`getopt -o "b:c:d:hi:p:s:t:w:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:" -- "$@"`
+ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
 while (( $# )); do
   case "$1" in
     -b|--builddir)
@@ -68,7 +72,7 @@ while (( $# )); do
       ;;
     -f|--finishbuild)
       shift;
-      FINISH_BUILD_HANDLER_="$1"
+      FINISH_BUILD_HANDLER="$1"
       shift;
       ;;
     -i|--intervene)
@@ -94,6 +98,16 @@ while (( $# )); do
     -w|--workspace)
       shift;
       WORKSPACE="$1"
+      shift;
+      ;;
+    --bindest)
+      shift;
+      FINAL_BIN_DEST="$1"
+      shift;
+      ;;
+    -l|--lock)
+      shift;
+      LOCKFILE="$1"
       shift;
       ;;
     -h|--help)
