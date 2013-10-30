@@ -37,7 +37,7 @@ Usage:
 	Script to be run at the completion of the build process
 -o, --output
 	Output logfile; all script output sent to standard out if this is unset
--s, --prepbuild
+-p, --prepbuild
 	Script to be run after build tree is cleaned and repopulated with new feed info
 -t, --tempdir
 	Location to which temporary files will be downloaded
@@ -52,7 +52,7 @@ Usage:
 END_OF_USAGE
 )
 
-ARGS=`getopt -o "b:c:d:hi:p:s:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
+ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
 while (( $# )); do
   case "$1" in
     -b|--builddir)
