@@ -53,6 +53,11 @@ END_OF_USAGE
 )
 
 ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
+
+if [ $? -ne 0 ]; then
+ exit 1
+fi
+
 while (( $# )); do
   case "$1" in
     -b|--builddir)
@@ -122,7 +127,8 @@ while (( $# )); do
 done
 
 #destination for images
-# Intelligently choose an open builddir
+#Intelligently choose an open builddir
+#Add checks for validity of workspace, if downloads directory is usable, 
 
 if [ "$BUILD_DIR/commotion-openwrt/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/commotion-openwrt/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
@@ -158,14 +164,36 @@ function cleanBuildTree {
  echo "Done!"
 }
 
+function intervene {
+ echo "Opening a shell within the build environment. Exit the shell to continue the normal automated process.  Exit 5 to abort the automated process."
+ bash
+ if [ $? -eq 5 ]; then
+  echo "Aborting the script."
+  rm "$LOCKFILE"
+  exit
+ else
+  echo "Continuing the script..."
+ fi
+}
+
 cleanBuildTree
-mkdir -p $TEMP_DIR
+mkdir -p "$TEMP_DIR"
 echo "Cloning main repo into $TEMP_DIR/commotion-openwrt..."
 cd "$TEMP_DIR"
 git clone "$INIT_CLONE_SRC" 
 cd commotion-openwrt
-# Add an additional bash call here if you need to make changes to ./setup or any other part of the initial build tree before ./setup runs.
-./setup.sh
+
+if [ "$INTERVENE" -gt 2 ]; then
+ echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
+ intervene
+fi
+
+if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+ ./setup.sh 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+else
+ ./setup.sh
+fi
+
 echo "Moving dynamic elements of build tree from $TEMP_DIR to build directory $BUILD_DIR..."
 cp -rf .git* "$BUILD_DIR/commotion-openwrt/"
 cd openwrt
@@ -173,26 +201,22 @@ rm -rf  staging_dir tools toolchain
 cp -rf . "$BUILD_DIR/commotion-openwrt/openwrt"
 
 echo "Entering $BUILD_DIR and setting build options..."
-cd $BUILD_DIR/commotion-openwrt/openwrt
+cd "$BUILD_DIR/commotion-openwrt/openwrt"
 sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
 sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
 echo "Selectively purging downloads directory..."
-find $DOWNLOAD_DIR -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
+find "$DOWNLOAD_DIR" -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
 
-echo "Ready to build! Make any changes you wish to feeds, menuconfig, or anything else at the prompt below, and then exit to continue the build. Exit 5 to abort the build."
 
 if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
  . "$CUSTOM_BUILD_HANDLER"
 elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
- echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
+echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
 fi
-bash
-if [ $? -eq 5 ]; then
- echo "Aborting the build."
- rm "$LOCKFILE"
- exit
-else
- echo "Starting the build."
+
+if [ "$INTERVENE" -gt 0 ]; then
+ echo "Ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below."
+ intervene
 fi
 
 if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
@@ -207,6 +231,11 @@ if [ -e bin/ar71xx ]; then
  chmod -Rf g+w "$FINAL_BIN_DEST"
 fi
 echo "Done!"
+
+if [ "$INTERVENE" -gt 1 ]; then
+ echo "The main OpenWRT build process is complete.  If you wish to check or extract anything in the build tree before it is cleaned up, do so now."
+ intervene
+fi
 
 cleanBuildTree
 chmod -Rf g+w "$BUILD_DIR/commotion-openwrt"
