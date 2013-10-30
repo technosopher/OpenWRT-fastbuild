@@ -23,7 +23,31 @@ LOCKFILE="$BUILD_DIR/.lock"
 #CUSTOM_BUILD_HANDLER="$WORKSPACE/custom_build.sh"
 #FINISH_BUILD_HANDLER="$WORKSPACE/finish_build.sh"
 
-USAGE="Usage:\n-b, --buildir\n\tSpecify location of pre-populated build tree (the commotion-openwrt folder is expected to exist in this location)\n-c, --clonesrc\n\tExact URL to be used to get the initial clone of commotion-openwrt; append a -b flag if you need to specify a branch\n-d, --downloaddir\n\tSpecify location of the downloads cache\n-i, --intervene\n\tSpecify degree of manual intervention desired from 0-2, where 0 signifies none and 3 signifies a lot\n-f, --finishbuild\n\tScript to be run at the completion of the build process\n-o, --output\n\tOutput logfile; all script output sent to standard out if this is unset\n-s, --prepbuild\n\tScript to be run after build tree is cleaned and repopulated with new feed info\n-t, --tempdir\n\tLocation to which temporary files will be downloaded\n-w, --workspace\n\tDefault "root" of entire build envionment, in which all other important directories and files are expected to exist, unless otherwise specified\n-h, --help\n\tPrint this help message and exit\n"
+USAGE=$(cat <<END_OF_USAGE
+Usage:
+-b, --buildir
+	Specify location of pre-populated build tree (the commotion-openwrt folder is expected to exist in this location)
+-c, --clonesrc
+	Exact URL to be used to get the initial clone of commotion-openwrt; append a -b flag if you need to specify a branch
+-d, --downloaddir
+	Specify location of the downloads cache
+-i, --intervene
+	Specify degree of manual intervention desired from 0-2, where 0 signifies none and 3 signifies a lot
+-f, --finishbuild
+	Script to be run at the completion of the build process
+-o, --output
+	Output logfile; all script output sent to standard out if this is unset
+-s, --prepbuild
+	Script to be run after build tree is cleaned and repopulated with new feed info
+-t, --tempdir
+	Location to which temporary files will be downloaded
+-w, --workspace
+	Default "root" of entire build envionment, in which all other important directories and files are expected to exist, unless otherwise specified
+-h, --help
+	Print this help message and exit\n
+END_OF_USAGE
+)
+
 ARGS=`getopt -o "b:c:d:hi:p:s:t:w:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:" -- "$@"`
 while (( $# )); do
   case "$1" in
