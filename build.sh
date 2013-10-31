@@ -97,7 +97,7 @@ while (( $# )); do
       ;;
     -t|--tempdir)
       shift;
-      TEMPDIR="$1"
+      TEMP_DIR="$1"
       shift;
       ;;
     -w|--workspace)
