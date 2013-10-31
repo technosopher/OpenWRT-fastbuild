@@ -7,6 +7,10 @@ echo "Customizing image now ..."
 # the install on boot into the /etc/uci-defaults/
 # directory.
 CUSTOM_WORKSPACE="${WORKSPACE}/customworkspacedir"
+
+#Create /builddata.txt
+echo "Built on" `date` > ${WORKSPACE}/commotion-openwrt/openwrt/files/builddata.txt
+
 cp -r ${CUSTOM_WORKSPACE}/* ${WORKSPACE}/commotion-openwrt/openwrt/files/
 
 echo "UCI defaults:"
