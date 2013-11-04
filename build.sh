@@ -19,6 +19,7 @@ INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-openwrt.git'
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
+INTERVENE=3
 #BUILD_OUTPUT_LOGFILE="$WORKSPACE/build.log"
 #CUSTOM_BUILD_HANDLER="$WORKSPACE/custom_build.sh"
 #FINISH_BUILD_HANDLER="$WORKSPACE/finish_build.sh"
@@ -32,7 +33,7 @@ Usage:
 -d, --downloaddir
 	Specify location of the downloads cache
 -i, --intervene
-	Specify degree of manual intervention desired from 0-2, where 0 signifies none and 3 signifies a lot
+	Specify degree of manual intervention desired from 0-3, where 0 signifies none and 3 signifies a lot
 -f, --finishbuild
 	Script to be run at the completion of the build process
 -o, --output
