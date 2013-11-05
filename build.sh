@@ -20,6 +20,7 @@ DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
 INTERVENE=3
+CLEAN_ONLY=0
 #BUILD_OUTPUT_LOGFILE="$WORKSPACE/build.log"
 #CUSTOM_BUILD_HANDLER="$WORKSPACE/custom_build.sh"
 #FINISH_BUILD_HANDLER="$WORKSPACE/finish_build.sh"
@@ -48,12 +49,14 @@ Usage:
 	Where to put the final binaries
 -l, --lock
 	Location of lock file
+--clean
+	Clean only
 -h, --help
 	Print this help message and exit\n
 END_OF_USAGE
 )
 
-ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
+ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:,clean" -- "$@"`
 
 if [ $? -ne 0 ]; then
  exit 1
@@ -110,6 +113,10 @@ while (( $# )); do
       shift;
       FINAL_BIN_DEST="$1"
       shift;
+      ;;
+    --clean)
+      shift;
+      CLEAN_ONLY=1
       ;;
     -l|--lock)
       shift;
@@ -178,6 +185,11 @@ function intervene {
 }
 
 cleanBuildTree
+if [ "$CLEAN_ONLY" -eq 1 ]; then
+ rm "$LOCKFILE"
+ exit
+fi
+
 mkdir -p "$TEMP_DIR"
 echo "Cloning main repo into $TEMP_DIR/commotion-openwrt..."
 cd "$TEMP_DIR"
