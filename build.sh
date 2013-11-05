@@ -163,8 +163,8 @@ function cleanBuildTree {
  cd "$BUILD_DIR/commotion-openwrt/openwrt"
  if [ -e build_dir/linux-ar71xx_generic ]; then
   make clean
-  find . -type d -not -name '.' -not -regex ".*/\(toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
-  find . -type f -not -name '.' -not -regex ".*/\(toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
+  find . -type d -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
+  find . -type f -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
   cd "$BUILD_DIR/commotion-openwrt"
   find . -not -name '.' -not -regex ".*openwrt.*" | xargs rm -rf
   find . -type d -name '.svn' -o -name 'target-mips_r2_uClibc-0.9.33.2' | xargs rm -rf
