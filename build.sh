@@ -193,7 +193,7 @@ fi
 mkdir -p "$TEMP_DIR"
 echo "Cloning main repo into $TEMP_DIR/commotion-openwrt..."
 cd "$TEMP_DIR"
-git clone "$INIT_CLONE_SRC" 
+git clone $INIT_CLONE_SRC
 cd commotion-openwrt
 
 if [ "$INTERVENE" -gt 2 ]; then
