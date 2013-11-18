@@ -14,7 +14,7 @@
 umask 002
 WORKSPACE="/tmp"
 BUILD_DIR="/mnt"
-TEMP_DIR="/tmp/openwrt-fastbuild"
+TEMP_DIR="WORKSPACE/openwrt-tmp"
 INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-openwrt.git'
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
@@ -28,9 +28,9 @@ CLEAN_ONLY=0
 USAGE=$(cat <<END_OF_USAGE
 Usage:
 -b, --buildir
-	Specify location of pre-populated build tree (the commotion-openwrt folder is expected to exist in this location)
+	Specify location of pre-populated build tree (the main source repo is expected to exist in this location)
 -c, --clonesrc
-	Exact URL to be used to get the initial clone of commotion-openwrt; append a -b flag if you need to specify a branch
+	Exact URL to be used to get the initial clone of the source repo; append a -b flag if you need to specify a branch
 -d, --downloaddir
 	Specify location of the downloads cache
 -i, --intervene
@@ -134,17 +134,18 @@ while (( $# )); do
   esac
 done
 
+REPO_NAME=`echo "$INIT_CLONE_SRC" | sed -e 's,.*/.*/,,g' -e 's,\..*,,g'`
 #destination for images
 #Intelligently choose an open builddir
 #Add checks for validity of workspace, if downloads directory is usable, 
 
-if [ "$BUILD_DIR/commotion-openwrt/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/commotion-openwrt/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
+if [ "$BUILD_DIR/$REPO_NAME/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/$REPO_NAME/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
  exit 1
 fi
 
-if [ `id -u` != `stat $BUILD_DIR/commotion-openwrt -c %u` ]; then
- echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/commotion-openwrt -c %U`\", to run this script!  Exiting..."
+if [ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]; then
+ echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/$REPO_NAME -c %U`\", to run this script!  Exiting..."
  exit 1
 fi
 
@@ -157,15 +158,15 @@ fi
 
 function cleanBuildTree {
  echo "Cleaning up build environment..."
- if [ -e "$TEMP_DIR" ]; then
-  rm -rf "$TEMP_DIR"
+ if [ -e "$TEMP_DIR/$REPO_NAME" ]; then
+  rm -rf "$TEMP_DIR/$REPO_NAME"
  fi
- cd "$BUILD_DIR/commotion-openwrt/openwrt"
+ cd "$BUILD_DIR/$REPO_NAME/openwrt"
  if [ -e build_dir/linux-ar71xx_generic ]; then
   make clean
   find . -type d -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
   find . -type f -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
-  cd "$BUILD_DIR/commotion-openwrt"
+  cd "$BUILD_DIR/$REPO_NAME"
   find . -not -name '.' -not -regex ".*openwrt.*" | xargs rm -rf
   find . -type d -name '.svn' -o -name 'target-mips_r2_uClibc-0.9.33.2' | xargs rm -rf
  fi
@@ -190,11 +191,10 @@ if [ "$CLEAN_ONLY" -eq 1 ]; then
  exit
 fi
 
-mkdir -p "$TEMP_DIR"
-echo "Cloning main repo into $TEMP_DIR/commotion-openwrt..."
+echo "Cloning main repo into $TEMP_DIR/$REPO_NAME..."
 cd "$TEMP_DIR"
-git clone $INIT_CLONE_SRC
-cd commotion-openwrt
+git clone "$INIT_CLONE_SRC" 
+cd "$REPO_NAME
 
 if [ "$INTERVENE" -gt 2 ]; then
  echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
@@ -208,13 +208,13 @@ else
 fi
 
 echo "Moving dynamic elements of build tree from $TEMP_DIR to build directory $BUILD_DIR..."
-cp -rf .git* "$BUILD_DIR/commotion-openwrt/"
+cp -rf .git* "$BUILD_DIR/$REPO_NAME/"
 cd openwrt
 rm -rf  staging_dir tools toolchain
-cp -rf . "$BUILD_DIR/commotion-openwrt/openwrt"
+cp -rf . "$BUILD_DIR/$REPO_NAME/openwrt"
 
 echo "Entering $BUILD_DIR and setting build options..."
-cd "$BUILD_DIR/commotion-openwrt/openwrt"
+cd "$BUILD_DIR/$REPO_NAME/openwrt"
 sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
 sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
 echo "Selectively purging downloads directory..."
@@ -251,7 +251,7 @@ if [ "$INTERVENE" -gt 1 ]; then
 fi
 
 cleanBuildTree
-chmod -Rf g+w "$BUILD_DIR/commotion-openwrt"
+chmod -Rf g+w "$BUILD_DIR/$REPO_NAME"
 find "$DOWNLOAD_DIR" ! -perm -g+w | xargs chmod g+w
 rm "$LOCKFILE"
 
