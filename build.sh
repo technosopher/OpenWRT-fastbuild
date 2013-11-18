@@ -20,6 +20,7 @@ DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
 INTERVENE=3
+CLEAN_ONLY=0
 #BUILD_OUTPUT_LOGFILE="$WORKSPACE/build.log"
 #CUSTOM_BUILD_HANDLER="$WORKSPACE/custom_build.sh"
 #FINISH_BUILD_HANDLER="$WORKSPACE/finish_build.sh"
@@ -48,12 +49,14 @@ Usage:
 	Where to put the final binaries
 -l, --lock
 	Location of lock file
+--clean
+	Clean only
 -h, --help
 	Print this help message and exit\n
 END_OF_USAGE
 )
 
-ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
+ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:,clean" -- "$@"`
 
 if [ $? -ne 0 ]; then
  exit 1
@@ -111,6 +114,10 @@ while (( $# )); do
       FINAL_BIN_DEST="$1"
       shift;
       ;;
+    --clean)
+      shift;
+      CLEAN_ONLY=1
+      ;;
     -l|--lock)
       shift;
       LOCKFILE="$1"
@@ -156,8 +163,8 @@ function cleanBuildTree {
  cd "$BUILD_DIR/commotion-openwrt/openwrt"
  if [ -e build_dir/linux-ar71xx_generic ]; then
   make clean
-  find . -type d -not -name '.' -not -regex ".*/\(toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
-  find . -type f -not -name '.' -not -regex ".*/\(toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
+  find . -type d -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
+  find . -type f -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
   cd "$BUILD_DIR/commotion-openwrt"
   find . -not -name '.' -not -regex ".*openwrt.*" | xargs rm -rf
   find . -type d -name '.svn' -o -name 'target-mips_r2_uClibc-0.9.33.2' | xargs rm -rf
@@ -178,10 +185,15 @@ function intervene {
 }
 
 cleanBuildTree
+if [ "$CLEAN_ONLY" -eq 1 ]; then
+ rm "$LOCKFILE"
+ exit
+fi
+
 mkdir -p "$TEMP_DIR"
 echo "Cloning main repo into $TEMP_DIR/commotion-openwrt..."
 cd "$TEMP_DIR"
-git clone "$INIT_CLONE_SRC" 
+git clone $INIT_CLONE_SRC
 cd commotion-openwrt
 
 if [ "$INTERVENE" -gt 2 ]; then
