@@ -14,7 +14,7 @@
 umask 002
 WORKSPACE="/tmp"
 BUILD_DIR="/mnt"
-TEMP_DIR="WORKSPACE/openwrt-tmp"
+TEMP_DIR="$WORKSPACE/openwrt-tmp"
 INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-openwrt.git'
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
@@ -29,8 +29,8 @@ USAGE=$(cat <<END_OF_USAGE
 Usage:
 -b, --buildir
 	Specify location of pre-populated build tree (the main source repo is expected to exist in this location)
--c, --clonesrc
-	Exact URL to be used to get the initial clone of the source repo; append a -b flag if you need to specify a branch
+-c, --clean
+	Clean only
 -d, --downloaddir
 	Specify location of the downloads cache
 -i, --intervene
@@ -41,6 +41,8 @@ Usage:
 	Output logfile; all script output sent to standard out if this is unset
 -p, --prepbuild
 	Script to be run after build tree is cleaned and repopulated with new feed info
+-s, --source
+	Exact URL to be used to get the initial clone of the source repo; append a -b flag if you need to specify a branch
 -t, --tempdir
 	Location to which temporary files will be downloaded
 -w, --workspace
@@ -49,14 +51,12 @@ Usage:
 	Where to put the final binaries
 -l, --lock
 	Location of lock file
---clean
-	Clean only
 -h, --help
 	Print this help message and exit\n
 END_OF_USAGE
 )
 
-ARGS=`getopt -o "b:c:d:hi:p:t:w:f:o:l:" -l "builddir:,clonesrc:,downloaddir:,help,intervene:,output:,prepbuild:,tempdir:,workspace:,bindest:,lock:,clean" -- "$@"`
+ARGS=`getopt -o "b:c:d:hi:p:s:t:w:f:o:l:" -l "builddir:,clean,downloaddir:,help,intervene:,output:,prepbuild:,source:,tempdir:,workspace:,bindest:,lock:" -- "$@"`
 
 if [ $? -ne 0 ]; then
  exit 1
@@ -69,10 +69,9 @@ while (( $# )); do
       BUILD_DIR="$1"
       shift;
       ;;
-    -c|--clonesrc)
+    -c|--clean)
       shift;
-      INIT_CLONE_SRC="$1"
-      shift;
+      CLEAN_ONLY=1
       ;;
     -d|--downloaddir)
       shift;
@@ -99,6 +98,11 @@ while (( $# )); do
       CUSTOM_BUILD_HANDLER="$1"
       shift;
       ;;
+    -s|--source)
+      shift;
+      INIT_CLONE_SRC="$1"
+      shift;
+      ;;
     -t|--tempdir)
       shift;
       TEMP_DIR="$1"
@@ -113,10 +117,6 @@ while (( $# )); do
       shift;
       FINAL_BIN_DEST="$1"
       shift;
-      ;;
-    --clean)
-      shift;
-      CLEAN_ONLY=1
       ;;
     -l|--lock)
       shift;
@@ -139,6 +139,23 @@ REPO_NAME=`echo "$INIT_CLONE_SRC" | sed -e 's,.*/.*/,,g' -e 's,\..*,,g'`
 #Intelligently choose an open builddir
 #Add checks for validity of workspace, if downloads directory is usable, 
 
+if [ ! -e "$WORKSPACE" ]; then
+ echo "Workspace $WORKSPACE does not exist!  Create it, then restart the build script"
+ exit 1
+fi
+if [ ! -e "$BUILD_DIR" ]; then
+ echo "Build directory $BUILD_DIR does not exist!  Create it, then restart the build script"
+ exit 1
+fi
+if [ ! -e "$DOWNLOAD_DIR" ]; then
+ echo "Download directory $DOWNLOAD_DIR does not exist!  Create it, then restart the build script"
+ exit 1
+fi
+if [ ! -e "$TEMP_DIR" ]; then
+ echo "Temporary directory $TEMP_DIR does not exist!  Create it, then restart the build script"
+ exit 1
+fi
+
 if [ "$BUILD_DIR/$REPO_NAME/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/$REPO_NAME/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
  echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
  exit 1
@@ -150,7 +167,7 @@ if [ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]; then
 fi
 
 if [ -e "$LOCKFILE" ]; then
- echo "ERROR: Lockfile found! A build is already in progress.  Exiting..."
+ echo "Lockfile found! A build is already in progress.  Exiting..."
  exit 1
 else
  touch "$LOCKFILE"
