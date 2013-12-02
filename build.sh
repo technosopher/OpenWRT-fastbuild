@@ -211,7 +211,7 @@ fi
 echo "Cloning main repo into $TEMP_DIR/$REPO_NAME..."
 cd "$TEMP_DIR"
 git clone "$INIT_CLONE_SRC" 
-cd "$REPO_NAME
+cd "$REPO_NAME"
 
 if [ "$INTERVENE" -gt 2 ]; then
  echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
