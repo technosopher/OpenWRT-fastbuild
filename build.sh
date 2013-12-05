@@ -135,125 +135,141 @@ while (( $# )); do
 done
 
 REPO_NAME=`echo "$INIT_CLONE_SRC" | sed -e 's,.*/.*/,,g' -e 's,\..*,,g'`
-#destination for images
 #Intelligently choose an open builddir
 #Add checks for validity of workspace, if downloads directory is usable, 
 
-if [ ! -e "$WORKSPACE" ]; then
- echo "Workspace $WORKSPACE does not exist!  Create it, then restart the build script"
- exit 1
-fi
-if [ ! -e "$BUILD_DIR" ]; then
- echo "Build directory $BUILD_DIR does not exist!  Create it, then restart the build script"
- exit 1
-fi
-if [ ! -e "$DOWNLOAD_DIR" ]; then
- echo "Download directory $DOWNLOAD_DIR does not exist!  Create it, then restart the build script"
- exit 1
-fi
-if [ ! -e "$TEMP_DIR" ]; then
- echo "Temporary directory $TEMP_DIR does not exist!  Create it, then restart the build script"
- exit 1
-fi
+function intervene {
+	echo "Opening a shell within the build environment. Exit the shell to continue the normal automated process.  Exit 5 to abort the automated process."
+	bash
+	if [ $? -eq 5 ]; then
+	 echo "Aborting the script."
+	 rm "$LOCKFILE"
+	 exit
+	else
+	 echo "Continuing the script..."
+	fi
+}
 
-if [ "$BUILD_DIR/$REPO_NAME/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/$REPO_NAME/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
- echo "Specified workspace does not contain a pre-populated build tree!  Please run a full build in $BUILD_DIR, then try again"
- exit 1
-fi
+function runBuild {
+	echo "Entering $BUILD_DIR and setting build options..."
+	cd "$BUILD_DIR/$REPO_NAME/openwrt"
+	sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
+	sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
 
-if [ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]; then
- echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/$REPO_NAME -c %U`\", to run this script!  Exiting..."
- exit 1
-fi
+	if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
+	 . "$CUSTOM_BUILD_HANDLER"
+	elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
+	echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
+	fi
 
-if [ -e "$LOCKFILE" ]; then
- echo "Lockfile found! A build is already in progress.  Exiting..."
- exit 1
-else
- touch "$LOCKFILE"
-fi
+	if [ "$INTERVENE" -gt 0 ]; then
+	 echo "Ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below."
+	 intervene
+	fi
+
+	if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+	 make -j $1 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+	else
+	 make -j $1
+	fi
+        if [[ $? -eq 0 ]]; then
+         echo "Build successful!"
+        else
+         echo "There was a build error.  Exiting without cleaning up anything..."
+         exit 1
+        fi
+}
+
+function checkBuildEnv {
+	if [ ! -e "$WORKSPACE" ]; then
+	 echo "Workspace $WORKSPACE does not exist!  Create it, then restart the build script"
+	 exit 1
+	fi
+	if [ ! -e "$BUILD_DIR" ]; then
+	 echo "Build directory $BUILD_DIR does not exist!  Create it, then restart the build script"
+	 exit 1
+	fi
+	if [ ! -e "$DOWNLOAD_DIR" ]; then
+	 echo "Download directory $DOWNLOAD_DIR does not exist!  Create it, then restart the build script"
+	 exit 1
+	fi
+	if [ ! -e "$TEMP_DIR" ]; then
+	 echo "Temporary directory $TEMP_DIR does not exist!  Create it, then restart the build script"
+	 exit 1
+	fi
+
+	if [ "$BUILD_DIR/$REPO_NAME/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/$REPO_NAME/openwrt/build_dir/toolchain-mips_r2_gcc-4.6-linaro_uClibc-0.9.33.2" ]; then
+	 echo "Specified workspace does not contain a pre-populated build tree!  Now running a full, non-parallelized build in $BUILD_DIR..."
+         runBuild 1
+         exit 0
+	fi
+
+	if [ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]; then
+	 echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/$REPO_NAME -c %U`\", to run this script!  Exiting..."
+	 exit 1
+	fi
+
+	if [ -e "$LOCKFILE" ]; then
+	 echo "Lockfile found! A build is already in progress.  Exiting..."
+	 exit 1
+	else
+	 touch "$LOCKFILE"
+	fi
+}
 
 function cleanBuildTree {
- echo "Cleaning up build environment..."
- if [ -e "$TEMP_DIR/$REPO_NAME" ]; then
-  rm -rf "$TEMP_DIR/$REPO_NAME"
- fi
- cd "$BUILD_DIR/$REPO_NAME/openwrt"
- if [ -e build_dir/linux-ar71xx_generic ]; then
-  make clean
-  find . -type d -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
-  find . -type f -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
-  cd "$BUILD_DIR/$REPO_NAME"
-  find . -not -name '.' -not -regex ".*openwrt.*" | xargs rm -rf
-  find . -type d -name '.svn' -o -name 'target-mips_r2_uClibc-0.9.33.2' | xargs rm -rf
- fi
- echo "Done!"
+	echo "Cleaning up build environment..."
+	if [ -e "$TEMP_DIR/$REPO_NAME" ]; then
+	 rm -rf "$TEMP_DIR/$REPO_NAME"
+	fi
+	cd "$BUILD_DIR/$REPO_NAME/openwrt"
+	if [ -e build_dir/linux-ar71xx_generic ]; then
+	 make clean
+	 find . -type d -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
+	 find . -type f -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\)/.*" | xargs rm -f
+	 cd "$BUILD_DIR/$REPO_NAME"
+	 find . -not -name '.' -not -regex ".*openwrt.*" | xargs rm -rf
+	 find . -type d -name '.svn' -o -name 'target-mips_r2_uClibc-0.9.33.2' | xargs rm -rf
+	fi
+	echo "Selectively purging downloads directory..."
+	find "$DOWNLOAD_DIR" -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
+	echo "Done!"
 }
 
-function intervene {
- echo "Opening a shell within the build environment. Exit the shell to continue the normal automated process.  Exit 5 to abort the automated process."
- bash
- if [ $? -eq 5 ]; then
-  echo "Aborting the script."
-  rm "$LOCKFILE"
-  exit
- else
-  echo "Continuing the script..."
- fi
+function getLatestCode {
+	echo "Cloning main repo into $TEMP_DIR/$REPO_NAME..."
+	cd "$TEMP_DIR"
+	git clone "$INIT_CLONE_SRC" 
+	cd "$REPO_NAME
+
+	if [ "$INTERVENE" -gt 2 ]; then
+	 echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
+	 intervene
+	fi
+
+	if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+	 ./setup.sh 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+	else
+	 ./setup.sh
+	fi
+
+	echo "Moving dynamic elements of build tree from $TEMP_DIR to build directory $BUILD_DIR..."
+	cp -rf .git* "$BUILD_DIR/$REPO_NAME/"
+	cd openwrt
+	rm -rf  staging_dir tools toolchain
+	cp -rf . "$BUILD_DIR/$REPO_NAME/openwrt"
 }
 
+
+checkBuildEnv
 cleanBuildTree
 if [ "$CLEAN_ONLY" -eq 1 ]; then
  rm "$LOCKFILE"
  exit
 fi
+getLatestCode
+runBuild 13
 
-echo "Cloning main repo into $TEMP_DIR/$REPO_NAME..."
-cd "$TEMP_DIR"
-git clone "$INIT_CLONE_SRC" 
-cd "$REPO_NAME
-
-if [ "$INTERVENE" -gt 2 ]; then
- echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
- intervene
-fi
-
-if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
- ./setup.sh 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
-else
- ./setup.sh
-fi
-
-echo "Moving dynamic elements of build tree from $TEMP_DIR to build directory $BUILD_DIR..."
-cp -rf .git* "$BUILD_DIR/$REPO_NAME/"
-cd openwrt
-rm -rf  staging_dir tools toolchain
-cp -rf . "$BUILD_DIR/$REPO_NAME/openwrt"
-
-echo "Entering $BUILD_DIR and setting build options..."
-cd "$BUILD_DIR/$REPO_NAME/openwrt"
-sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
-sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
-echo "Selectively purging downloads directory..."
-find "$DOWNLOAD_DIR" -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
-
-
-if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
- . "$CUSTOM_BUILD_HANDLER"
-elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
-echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
-fi
-
-if [ "$INTERVENE" -gt 0 ]; then
- echo "Ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below."
- intervene
-fi
-
-if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
- make -j 13 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
-else
- make -j 13
-fi
 
 echo "Moving built binaries to $FINAL_BIN_DEST"
 if [ -e bin/ar71xx ]; then
