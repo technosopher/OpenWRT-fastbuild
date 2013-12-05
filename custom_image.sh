@@ -9,13 +9,13 @@ echo "Customizing image now ..."
 CUSTOM_WORKSPACE="${WORKSPACE}/customworkspacedir"
 
 #Create /builddata.txt
-echo "Built on" `date` > ${WORKSPACE}/commotion-openwrt/openwrt/files/builddata.txt
+echo "Built on" `date` > ${BUILD_DIR}/commotion-openwrt/openwrt/files/builddata.txt
 
-cp -r ${CUSTOM_WORKSPACE}/* ${WORKSPACE}/commotion-openwrt/openwrt/files/
+cp -r ${CUSTOM_WORKSPACE}/* ${BUILD_DIR}/commotion-openwrt/openwrt/files/
 
 echo "UCI defaults:"
-ls ${WORKSPACE}/commotion-openwrt/openwrt/files/etc/uci-defaults/
+ls ${BUILD_DIR}/commotion-openwrt/openwrt/files/etc/uci-defaults/
 echo "Commotion profiles:"
-ls ${WORKSPACE}/commotion-openwrt/openwrt/files/etc/commotion/profiles.d/
+ls ${BUILD_DIR}/commotion-openwrt/openwrt/files/etc/commotion/profiles.d/
 echo "Network file contents:"
-cat ${WORKSPACE}/commotion-openwrt/openwrt/files/etc/config/network
+cat ${BUILD_DIR}/commotion-openwrt/openwrt/files/etc/config/network
