@@ -1,20 +1,36 @@
 #!/bin/bash
+#TODO: Clean up build.sh flags, add in custom download dir and bindest handlers, add logic to create bin dir, tmp dir if they don't exist (prompt if intervene=3?), make lockfile check in build.sh more global, so that it prevents people who are not using the wrapper from clobbering anything
 
-WORKSPACE_ROOT='/mnt'
-ACTIVE_WORKSPACE=''
+BUILDTREE_ROOT='/mnt'
+SHARED_DOWNLOAD_DIR='/tmp/downloads'
 USER=`whoami`
-for workspace in "$WORKSPACE_ROOT/workspace*"; do 
-	lock=`find /mnt/ -maxdepth 1 -name *.lock`
+ACTIVE_BUILDTREE=''
+for TREE in $BUILDTREE_ROOT/build_tree*; do
+        echo $TREE 
+	lock=`find $TREE -maxdepth 1 -name *.lock`
         if [ -z "$lock" ]; then
-                echo "$workspace is available!  Claiming it..."
-                touch "$WORKSPACE_ROOT/$workspace/$USER.lock"
-		ACTIVE_WORKSPACE="$workspace"
+                echo "$TREE is available!  Claiming it..."
+		ACTIVE_BUILDTREE="$TREE"
+                break
         else
-	echo "$workspace is in use by `echo $lock | sed 's,\..*,,'`"
+	echo "$build_tree is in use by: `echo $lock | sed 's,\..*,,' | cut -d '/' -f 4`"
 	fi
 done
 
-if [ -n "$ACTIVE_WORKSPACE" ]; then
-	sudo -u build build.sh -b $ACTIVE_WORKSPACE
+if [ -n "$ACTIVE_BUILDTREE" ]; then
+        sudo -u build cp -p -r $SHARED_DOWNLOAD_DIR "$ACTIVE_BUILDTREE/tmp"
+	sudo -u build "$@" -b $ACTIVE_BUILDTREE -l "$ACTIVE_BUILDTREE/$USER.lock" -t "$ACTIVE_BUILDTREE/tmp" -d "$ACTIVE_BUILDTREE/tmp/downloads" --bindest "$BUILDTREE_ROOT/bin/$USER-`date +%F--%H.%M.%S`"
+	if [ $? -eq 0 ]; then
+		if [ -e "$ACTIVE_BUILDTREE/$USER.lock" ]; then
+			rm "$ACTIVE_BUILDTREE/$USER.lock"
+			rm -r "$ACTIVE_BUILDTREE/tmp/downloads"
+		fi
+	else 
+		if [ -e "$ACTIVE_BUILDTREE/$USER.lock" ]; then
+			rm "$ACTIVE_BUILDTREE/$USER.lock"
+			rm -r "$ACTIVE_BUILDTREE/tmp/downloads"
+		fi
+	fi
 else
-	echo "There are no free workspaces!  Please try again later, or badger the people listed above 
+	echo "There are no free build trees!  Please try again later, or badger the people listed above"
+fi 
