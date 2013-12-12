@@ -22,13 +22,13 @@ if [ -n "$ACTIVE_BUILDTREE" ]; then
 	sudo -u build "$@" -b $ACTIVE_BUILDTREE -l "$ACTIVE_BUILDTREE/$USER.lock" -t "$ACTIVE_BUILDTREE/tmp" -d "$ACTIVE_BUILDTREE/tmp/downloads" --bindest "$BUILDTREE_ROOT/bin/$USER-`date +%F--%H.%M.%S`"
 	if [ $? -eq 0 ]; then
 		if [ -e "$ACTIVE_BUILDTREE/$USER.lock" ]; then
-			rm "$ACTIVE_BUILDTREE/$USER.lock"
-			rm -r "$ACTIVE_BUILDTREE/tmp/downloads"
+			sudo -u build rm "$ACTIVE_BUILDTREE/$USER.lock"
+			sudo -u build rm -r "$ACTIVE_BUILDTREE/tmp/downloads"
 		fi
 	else 
 		if [ -e "$ACTIVE_BUILDTREE/$USER.lock" ]; then
-			rm "$ACTIVE_BUILDTREE/$USER.lock"
-			rm -r "$ACTIVE_BUILDTREE/tmp/downloads"
+			sudo -u build rm "$ACTIVE_BUILDTREE/$USER.lock"
+			sudo -u build rm -r "$ACTIVE_BUILDTREE/tmp/downloads"
 		fi
 	fi
 else
