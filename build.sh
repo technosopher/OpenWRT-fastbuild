@@ -191,7 +191,7 @@ function cleanBuildTree {
 }
 
 function intervene {
- echo "Opening a shell within the build environment. Exit the shell to continue the normal automated process.  Exit 5 to abort the automated process."
+ echo 'Opening a shell within the build environment. Enter "go" to continue the normal automated process, and "stop" to abort the process.'
  bash
  if [ $? -eq 5 ]; then
   echo "Aborting the script."
@@ -201,6 +201,14 @@ function intervene {
   echo "Continuing the script..."
  fi
 }
+
+function go {
+ exit 0
+}
+function stop {
+ exit 5
+}
+export -f go stop
 
 cleanBuildTree
 if [ "$CLEAN_ONLY" -eq 1 ]; then
@@ -224,29 +232,33 @@ else
  ./setup.sh
 fi
 
-echo "Moving dynamic elements of build tree from $TEMP_DIR to build directory $BUILD_DIR..."
+#Fix for specific bug in serval package that extracts version info from git
 cp -rf .git* "$BUILD_DIR/$REPO_NAME/"
+
 cd openwrt
+
+if [ "$INTERVENE" -gt 0 ]; then
+ echo "Almost ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below.  Your working (temporary) files will then be copied into the final build tree, and built."
+ intervene
+fi
+
+echo "Setting specified download directory and other build options..."
+sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
+sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
+
+echo "Moving dynamic elements of build tree from $TEMP_DIR to build directory $BUILD_DIR..."
 rm -rf  staging_dir tools toolchain
 cp -rf . "$BUILD_DIR/$REPO_NAME/openwrt"
 
-echo "Entering $BUILD_DIR and setting build options..."
-cd "$BUILD_DIR/$REPO_NAME/openwrt"
-sed -i .config -e 's,.*CONFIG_CCACHE.*,CONFIG_CCACHE=y,'
-sed -i .config -e "s,CONFIG_DOWNLOAD_FOLDER=\"\",CONFIG_DOWNLOAD_FOLDER=\"$DOWNLOAD_DIR\","
 echo "Selectively purging downloads directory..."
 find "$DOWNLOAD_DIR" -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
 
+cd "$BUILD_DIR/$REPO_NAME/openwrt"
 
 if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
  . "$CUSTOM_BUILD_HANDLER"
 elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
 echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
-fi
-
-if [ "$INTERVENE" -gt 0 ]; then
- echo "Ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below."
- intervene
 fi
 
 if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
@@ -255,17 +267,17 @@ else
  make -j 13
 fi
 
+if [ "$INTERVENE" -gt 1 ]; then
+ echo "The main OpenWRT build process is complete.  If you wish to check or extract anything in the build tree before it is cleaned up, do so now."
+ intervene
+fi
+
 echo "Moving built binaries to $FINAL_BIN_DEST"
 if [ -e bin/ar71xx ]; then
  cp -rf bin/ar71xx "$FINAL_BIN_DEST"
  chmod -Rf g+w "$FINAL_BIN_DEST"
 fi
 echo "Done!"
-
-if [ "$INTERVENE" -gt 1 ]; then
- echo "The main OpenWRT build process is complete.  If you wish to check or extract anything in the build tree before it is cleaned up, do so now."
- intervene
-fi
 
 cleanBuildTree
 chmod -Rf g+w "$BUILD_DIR/$REPO_NAME"
