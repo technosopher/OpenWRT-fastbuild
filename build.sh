@@ -1,8 +1,8 @@
 #!/bin/bash
 # This script pulls allows you to execute a build within a pre-established build environment, complete with pre-built tools and toolchain.  
 # The script assumes that a succssful build has already been run within the $BUILD_DIR folder, 
-# and that the commotion-openwrt folder is located immediately under (within) $BUILD_DIR.
-# The script automatically cleans the existing build tree, clones a new copy of the commotion-openwrt repo into $TEMP_DIR,
+# and that the folder obtained from INIT_CLONE_SRC is located immediately under (within) $BUILD_DIR.
+# The script automatically cleans the existing build tree, clones a new copy of the INIT_CLONE_SRC repo into $TEMP_DIR,
 # checks out a fresh copy of the OpenWRT build system into this directory, and then copies all of the new files into the pre-existing
 # build tree.  The script then opens a command prompt, which allows the user to make any desired changes to feeds, menuconfig, makefiles, etc.
 # Once this subshell is closed, the build will proceed.  At the end of the build, the script will the entirety of the bin/ar71xx directory
@@ -10,12 +10,13 @@
 
 # IMPORTANT NOTE: Please do not execute any part of the build "manually" - let the script do everything for you, and/or modify the script 
 # to get it to do want you want.  The script embeds several non-intuitive assumptions, which you may run afoul of if you try to go "off-script"
+# TODO: Add checks for validity of workspace, if downloads directory is usable.  Decompose functions further
 
 umask 002
 WORKSPACE="/tmp"
 BUILD_DIR="/mnt"
 TEMP_DIR="$WORKSPACE/openwrt-tmp"
-INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-openwrt.git'
+INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-router.git'
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
@@ -135,9 +136,6 @@ while (( $# )); do
 done
 
 REPO_NAME=`echo "$INIT_CLONE_SRC" | sed -e 's,.*/.*/,,g' -e 's,\..*,,g'`
-#destination for images
-#Intelligently choose an open builddir
-#Add checks for validity of workspace, if downloads directory is usable, 
 
 if [ ! -e "$WORKSPACE" ]; then
  echo "Workspace $WORKSPACE does not exist!  Create it, then restart the build script"
