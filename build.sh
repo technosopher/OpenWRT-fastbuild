@@ -252,6 +252,7 @@ echo "Selectively purging downloads directory..."
 find "$DOWNLOAD_DIR" -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
 
 cd "$BUILD_DIR/$REPO_NAME/openwrt"
+rm -rf "$TEMP_DIR/$REPO_NAME"
 
 if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
  . "$CUSTOM_BUILD_HANDLER"
