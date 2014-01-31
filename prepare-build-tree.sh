@@ -2,7 +2,7 @@ DOWNLOADS_DIR="/tmp/downloads"
 TREE=$1
 MOUNT_INFO=`mount`
 
-if [ -z $TREE ]; then
+if [ ! -d $TREE ]; then
 	echo "Specified path, $TREE, does not exist, and hence cannot be initialized as a build tree.  Exiting..."
         exit 1
 fi
