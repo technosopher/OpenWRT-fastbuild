@@ -14,10 +14,10 @@
 
 umask 002
 WORKSPACE="/tmp"
-BUILD_DIR="/mnt/build_tree_1"
+BUILD_DIR="$WORKSPACE/build"
 TEMP_DIR="$WORKSPACE/openwrt-tmp"
-#FETCH_SRC='git clone https://github.com/opentechinstitute/commotion-router.git'
-FETCH_SRC=". `pwd`/multioption_custom_image.sh $TEMP_DIR"
+FETCH_SRC="cd $TEMP_DIR; git clone https://github.com/opentechinstitute/commotion-router.git; cd commotion-router; ./setup.sh; cd openwrt"
+#FETCH_SRC=". `pwd`/multioption_custom_image.sh $TEMP_DIR"
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
@@ -36,7 +36,7 @@ Usage:
 -d, --downloaddir
 	Specify location of the downloads cache
 -i, --intervene
-	Specify degree of manual intervention desired from 0-3, where 0 signifies none and 3 signifies a lot
+        Specify how often the automated process should drop into a shell to allow for manual intervention, on a scale from 0-3.  0 signifies 'never' and 3 signifies 'at every available opportunity'
 -f, --finishbuild
 	Script to be run at the completion of the build process
 -o, --output
@@ -44,7 +44,7 @@ Usage:
 -p, --prepbuild
 	Script to be run after build tree is cleaned and repopulated with new feed info
 -s, --source
-	Exact URL to be used to get the initial clone of the source repo; append a -b flag if you need to specify a branch
+        Exact command to be run (via eval) to fetch a working copy of the source code.  By default, this is a call to multioption_custom_image.sh
 -t, --tempdir
 	Location to which temporary files will be downloaded
 -w, --workspace
@@ -162,7 +162,7 @@ if [ "$BUILD_DIR/$REPO_NAME/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/$REPO_NA
 fi
 
 if [[ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]]; then
- echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/$REPO_NAME -c %U`\", to run this script!  Exiting..."
+ echo "You must be the owner (\"`stat $BUILD_DIR/$REPO_NAME -c %U`\") of the entire build tree ($BUILD_DIR) to run this script!  Exiting..."
  exit 1
 fi
 
@@ -219,8 +219,11 @@ fi
 
 
 echo "Fetching and unpacking source into $TEMP_DIR..."
-$FETCH_SRC 
-cd $SRC_DIR
+if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+ eval $FETCH_SRC 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+else
+ eval $FETCH_SRC
+fi
 #cd "$REPO_NAME"
 
 #if [ "$INTERVENE" -gt 2 ]; then
@@ -228,11 +231,6 @@ cd $SRC_DIR
 # intervene
 #fi
 
-#if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
-# $FETCH_SRC 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
-#else
-# $FETCH_SRC
-#fi
 
 #Fix for specific bug in serval package that extracts version info from git
 cp -rf ../.git* "$BUILD_DIR/$REPO_NAME/"
@@ -277,7 +275,7 @@ if [ "$INTERVENE" -gt 1 ]; then
 fi
 
 echo "Moving built binaries to $FINAL_BIN_DEST"
-if [ -e bin/ar71xx ]; then
+if [ -e bin/ar71xx ]; then #TODO: Add a check to make sure that BIN_DEST exists
  cp -rf bin/ar71xx "$FINAL_BIN_DEST"
  chmod -Rf g+w "$FINAL_BIN_DEST"
 fi

@@ -16,50 +16,52 @@ function cleanTemp {
 
 function ParseBundle {
 	pushd "$TEMP_DIR"
-	if [[ -x $1/configure.sh ]]; then 
+	if [[ -x "$1/configure.sh" ]]; then 
 		echo "Running $1/configure.sh..."
 		. $1/configure.sh
 	else SRC_DIR=$1
 	fi
-	if [[ -d $1/files ]]; then 
+	if [[ -d "$1/files" ]]; then 
 		echo "Copying $1/files/ to $SRC_DIR/files..."
-		cp -a $1/files/* $SRC_DIR/files
+		cp -af $1/files/* $SRC_DIR/files
 	fi
 	echo 'Nothing else to do.  Exiting...'
 	popd
+	cd "$SRC_DIR"
 }
 
 function FetchFileBundle {
-	cleanTemp $2
+	cleanTemp "$2"
 	if [[ "$1" =~ '.tar.gz'  ]]; then tar -xzf $1 $TEMP_DIR/$2
 	elif [[ "$1" =~ '.tar.bz2' ]]; then tar -xjf $1 $TEMP_DIR/$2
 	elif [[ "$1" =~ '.zip' ]]; then unzip -d $TEMP_DIR/$2 $1
-	elif [[ -d $1 ]]; then cp -a $1 $TEMP_DIR/$2 
+	elif [[ -d "$1" ]]; then cp -af $1 $TEMP_DIR/$2 
 	else
 		echo 'Malformed file bundle!  Files bundles must either be archives or directories.  Exiting...'
 		exit -1
         fi
 	echo 'File Bundle fetched!'
-	ParseBundle $TEMP_DIR/$2
+	ParseBundle "$TEMP_DIR/$2"
 }
 
 function FetchGitBundle {
-	cleanTemp $2
-	git clone $1 $TEMP_DIR/$2
+	cleanTemp "$2"
+	git clone "$1" "$TEMP_DIR/$2"
 	#Check clone exit status; if there was an error, halt
 	echo 'Git Bundle fetched!'
-	ParseBundle $TEMP_DIR/$2
+	ParseBundle "$TEMP_DIR/$2"
 }
 function FetchHttpBundle {
-	cleanTemp $2
-	pushd $TEMP_DIR
-	wget $1
+	cleanTemp "$2"
+	pushd "$TEMP_DIR"
+	wget "$1"
 	file=`echo $1 | sed 's,.*/,,g'`
 	echo 'Http Bundle fetched!'
 	#if [[ "$1" =~ '.tar.gz'  ]]; then 
 	#if [[ "$1" =~ '.tar.bz2' ]]
 	#if [[ "$1" =~ '.zip' ]]
 	popd
+	ParseBundle "$TEMP_DIR/$2"
 }
 
 
