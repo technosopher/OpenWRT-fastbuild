@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script pulls allows you to execute a build within a pre-established build environment, complete with pre-built tools and toolchain.  
 # The script assumes that a succssful build has already been run within the $BUILD_DIR folder, 
-# and that the folder obtained from INIT_CLONE_SRC is located immediately under (within) $BUILD_DIR.
+# and that the folder obtained from $FETCH_SRC is located immediately under (within) $BUILD_DIR.
 # The script automatically cleans the existing build tree, clones a new copy of the INIT_CLONE_SRC repo into $TEMP_DIR,
 # checks out a fresh copy of the OpenWRT build system into this directory, and then copies all of the new files into the pre-existing
 # build tree.  The script then opens a command prompt, which allows the user to make any desired changes to feeds, menuconfig, makefiles, etc.
@@ -14,9 +14,10 @@
 
 umask 002
 WORKSPACE="/tmp"
-BUILD_DIR="/mnt"
+BUILD_DIR="/mnt/build_tree_4"
 TEMP_DIR="$WORKSPACE/openwrt-tmp"
-INIT_CLONE_SRC='https://github.com/opentechinstitute/commotion-router.git'
+#FETCH_SRC='git clone https://github.com/opentechinstitute/commotion-router.git'
+FETCH_SRC=". `pwd`/multioption_custom_image.sh $TEMP_DIR"
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
@@ -101,7 +102,7 @@ while (( $# )); do
       ;;
     -s|--source)
       shift;
-      INIT_CLONE_SRC="$1"
+      FETCH_SRC="$1"
       shift;
       ;;
     -t|--tempdir)
@@ -135,7 +136,8 @@ while (( $# )); do
   esac
 done
 
-REPO_NAME=`echo "$INIT_CLONE_SRC" | sed -e 's,.*/.*/,,g' -e 's,\..*,,g'`
+#REPO_NAME=`echo "$FETCH_SRC" | sed -e 's,.*/.*/,,g' -e 's,\..*,,g'`
+REPO_NAME="commotion-router"
 
 if [ ! -e "$WORKSPACE" ]; then
  echo "Workspace $WORKSPACE does not exist!  Create it, then restart the build script"
@@ -159,7 +161,7 @@ if [ "$BUILD_DIR/$REPO_NAME/openwrt/toolchain/Makefile" -nt "$BUILD_DIR/$REPO_NA
  exit 1
 fi
 
-if [ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]; then
+if [[ `id -u` != `stat $BUILD_DIR/$REPO_NAME -c %u` ]]; then
  echo "You must be the owner of the entire build tree, \"`stat $BUILD_DIR/$REPO_NAME -c %U`\", to run this script!  Exiting..."
  exit 1
 fi
@@ -214,26 +216,28 @@ if [ "$CLEAN_ONLY" -eq 1 ]; then
  exit
 fi
 
-echo "Cloning main repo into $TEMP_DIR/$REPO_NAME..."
+
+echo "Fetching source within $TEMP_DIR/$REPO_NAME..."
 cd "$TEMP_DIR"
-git clone "$INIT_CLONE_SRC" 
-cd "$REPO_NAME"
+$FETCH_SRC 
+cd $SRC_DIR
+#cd "$REPO_NAME"
 
-if [ "$INTERVENE" -gt 2 ]; then
- echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
- intervene
-fi
+#if [ "$INTERVENE" -gt 2 ]; then
+# echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
+# intervene
+#fi
 
-if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
- ./setup.sh 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
-else
- ./setup.sh
-fi
+#if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+# ./setup.sh 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+#else
+# ./setup.sh
+#fi
 
 #Fix for specific bug in serval package that extracts version info from git
-cp -rf .git* "$BUILD_DIR/$REPO_NAME/"
+cp -rf ../.git* "$BUILD_DIR/$REPO_NAME/"
 
-cd openwrt
+#cd openwrt
 
 if [ "$INTERVENE" -gt 0 ]; then
  echo "Almost ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below.  Your working (temporary) files will then be copied into the final build tree, and built."
@@ -252,13 +256,14 @@ echo "Selectively purging downloads directory..."
 find "$DOWNLOAD_DIR" -regex ".*\(commotion\|luci\|serval\|olsrd\|avahi\|batphone\|nodog\).*" | xargs rm -f
 
 cd "$BUILD_DIR/$REPO_NAME/openwrt"
-rm -rf "$TEMP_DIR/$REPO_NAME"
+rm -rf "$SRC_DIR"
+#rm -rf "$TEMP_DIR/$REPO_NAME"
 
-if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
- . "$CUSTOM_BUILD_HANDLER"
-elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
-echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
-fi
+#if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
+# . "$CUSTOM_BUILD_HANDLER"
+#elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
+#echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
+#fi
 
 if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
  make -j 13 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"

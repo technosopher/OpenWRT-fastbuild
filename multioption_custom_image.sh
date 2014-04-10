@@ -1,20 +1,23 @@
 #!/bin/bash
 
-#Question: Read in each parameter as a different array, or read in each line as a single array entry, and parse later?
-BUILD_TREE_ROOT=`pwd` #OR PASS IT IN?
-BUNDLES_LIST=$BUILD_TREE_ROOT/bundles.conf
+BUNDLES_LIST=/tmp/bundles.conf
 BUNDLE_NAMES=()
 BUNDLE_LOCATIONS=()
-TEMP_DIR='/tmp'
 
+
+# Takes as a parameter the location of an unpacked config bundle.  
+# Runs the bundle's configure.sh, if it exists.  configure.sh is expected
+# to set the $SRC_DIR variable to the location of the source code directory.
+# Finally, copies the contents of the bundle's "file" folder to SRC_DIR.
 function ParseBundle {
 	if [[ -x $1/configure.sh ]]; then 
-	echo 'Running $1/configure.sh...'
-	. $1/configure.sh
+		echo "Running $1/configure.sh..."
+		. $1/configure.sh
+	else SRC_DIR=$1
 	fi
 	if [[ -d $1/files ]]; then 
-	echo 'Copying $1/files to $BUILD_TREE_ROOT/openwrt/files...'
-	cp -a $1/files $BUILD_TREE_ROOT/openwrt/files
+		echo 'Copying $1/files to $SRC_DIR/files...'
+		cp -a $1/files $SRC_DIR/files
 	fi
 	echo 'Nothing else to do.  Exiting...'
 }
