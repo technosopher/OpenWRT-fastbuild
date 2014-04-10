@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BUNDLES_LIST=/tmp/bundles.conf
+BUNDLES_LIST=./bundles.conf
 BUNDLE_NAMES=()
 BUNDLE_LOCATIONS=()
 
@@ -9,23 +9,31 @@ BUNDLE_LOCATIONS=()
 # Runs the bundle's configure.sh, if it exists.  configure.sh is expected
 # to set the $SRC_DIR variable to the location of the source code directory.
 # Finally, copies the contents of the bundle's "file" folder to SRC_DIR.
+
+function cleanTemp {
+	if [ -d "$TEMP_DIR/$1" ]; then rm -rf "$TEMP_DIR/$1"; fi
+}
+
 function ParseBundle {
+	pushd "$TEMP_DIR"
 	if [[ -x $1/configure.sh ]]; then 
 		echo "Running $1/configure.sh..."
 		. $1/configure.sh
 	else SRC_DIR=$1
 	fi
 	if [[ -d $1/files ]]; then 
-		echo 'Copying $1/files to $SRC_DIR/files...'
-		cp -a $1/files $SRC_DIR/files
+		echo "Copying $1/files/ to $SRC_DIR/files..."
+		cp -a $1/files/* $SRC_DIR/files
 	fi
 	echo 'Nothing else to do.  Exiting...'
+	popd
 }
 
 function FetchFileBundle {
+	cleanTemp $2
 	if [[ "$1" =~ '.tar.gz'  ]]; then tar -xzf $1 $TEMP_DIR/$2
 	elif [[ "$1" =~ '.tar.bz2' ]]; then tar -xjf $1 $TEMP_DIR/$2
-	elif [[ "$1" =~ '.zip' ]]; then unzip -d $2 $1
+	elif [[ "$1" =~ '.zip' ]]; then unzip -d $TEMP_DIR/$2 $1
 	elif [[ -d $1 ]]; then cp -a $1 $TEMP_DIR/$2 
 	else
 		echo 'Malformed file bundle!  Files bundles must either be archives or directories.  Exiting...'
@@ -36,12 +44,14 @@ function FetchFileBundle {
 }
 
 function FetchGitBundle {
+	cleanTemp $2
 	git clone $1 $TEMP_DIR/$2
 	#Check clone exit status; if there was an error, halt
 	echo 'Git Bundle fetched!'
 	ParseBundle $TEMP_DIR/$2
 }
 function FetchHttpBundle {
+	cleanTemp $2
 	pushd $TEMP_DIR
 	wget $1
 	file=`echo $1 | sed 's,.*/,,g'`

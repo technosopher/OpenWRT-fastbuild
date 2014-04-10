@@ -14,7 +14,7 @@
 
 umask 002
 WORKSPACE="/tmp"
-BUILD_DIR="/mnt/build_tree_4"
+BUILD_DIR="/mnt/build_tree_1"
 TEMP_DIR="$WORKSPACE/openwrt-tmp"
 #FETCH_SRC='git clone https://github.com/opentechinstitute/commotion-router.git'
 FETCH_SRC=". `pwd`/multioption_custom_image.sh $TEMP_DIR"
@@ -178,7 +178,7 @@ function cleanBuildTree {
  if [ -e "$TEMP_DIR/$REPO_NAME" ]; then
   rm -rf "$TEMP_DIR/$REPO_NAME"
  fi
- cd "$BUILD_DIR/$REPO_NAME/openwrt"
+ pushd "$BUILD_DIR/$REPO_NAME/openwrt"
  if [ -e build_dir/linux-ar71xx_generic ]; then
   make clean
   find . -type d -not -name '.' -not -regex ".*/\(logs\|toolchain\|tools\|staging_dir\|build_dir\|.*/\).*" | xargs rm -rf
@@ -187,6 +187,7 @@ function cleanBuildTree {
   find . -not -name '.' -not -regex ".*openwrt.*" | xargs rm -rf
   find . -type d -name '.svn' -o -name 'target-mips_r2_uClibc-0.9.33.2' | xargs rm -rf
  fi
+ popd
  echo "Done!"
 }
 
@@ -217,8 +218,7 @@ if [ "$CLEAN_ONLY" -eq 1 ]; then
 fi
 
 
-echo "Fetching source within $TEMP_DIR/$REPO_NAME..."
-cd "$TEMP_DIR"
+echo "Fetching and unpacking source into $TEMP_DIR..."
 $FETCH_SRC 
 cd $SRC_DIR
 #cd "$REPO_NAME"
@@ -229,9 +229,9 @@ cd $SRC_DIR
 #fi
 
 #if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
-# ./setup.sh 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+# $FETCH_SRC 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
 #else
-# ./setup.sh
+# $FETCH_SRC
 #fi
 
 #Fix for specific bug in serval package that extracts version info from git
