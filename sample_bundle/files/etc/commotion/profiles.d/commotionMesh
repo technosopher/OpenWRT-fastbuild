@@ -1,0 +1,20 @@
+{
+  "announce": "true",
+  "bssid": "02:CA:FF:EE:BA:BE",
+  "bssidgen": "true",
+  "channel": "11",
+  "dns": "208.67.222.222",
+  "domain": "mesh.local",
+  "encryption": "psk2",
+  "ip": "100.64.0.0",
+  "ipgen": "true",
+  "ipgenmask": "255.192.0.0",
+  "key": "password",
+  "mdp_keyring": "/etc/commotion/keys.d/mdp.keyring/serval.keyring",
+  "mdp_sid": "0000000000000000000000000000000000000000000000000000000000000000",
+  "mode": "adhoc",
+  "netmask": "255.192.0.0",
+  "serval": "false",
+  "ssid": "commotionwireless.net",
+  "type": "mesh"
+}

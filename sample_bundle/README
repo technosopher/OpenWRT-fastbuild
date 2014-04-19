@@ -1,0 +1,35 @@
+#Sample mesh network configuration bundle
+
+Bundles such as this one contain sets of configuration files that can be baked into new images as they are created.  Bundles make it fast and easy to replicate and share complex configurations required by particular pieces hardware; to create pre-configured, ready-to-deploy images that require little or no end-user configuration; and to embed various functionality tweaks for particular use-cases.  
+
+This particular bundle sample bundle creates an enables an open AP interface, so that the end-user can run through the Mesh Setup Wizard without having physical access to the node.  There are four key files that are likely to be inolved in any customization of this kind:
+
+./files/etc/config/network: contains information on all
+permanent network interfaces.  Note that the AP is actually
+associated with the "lan" interface, and hence does not have 
+a stanza of its own.  And the mesh network doesn't have a stanza
+yet, because we expect the end-user to run the Mesh Setup Wizard.
+
+./files/etc/commotion/profiles.d/commotionMesh: The Commotion-managed
+Mesh network profile. (Not present in this example, because we expect the
+end user to run the Mesh Setup Wizard as soon as the router flashed with this
+image comes on-line.  But you could add such a file if you wanted to create 
+an image that initiated a mesh connection as soon as it turned on)
+
+./files/etc/commotion/profiles.d/commotionAP: The Commotion-managed AP
+network profile.
+
+./files/etc/uci-defaults/add_network: This script turns on the AP, and initializes the Mesh interface's association with the router's radio, which is necessary because the Mesh Setup Wizard will bypass that step if it detects any already-configured interfaces (which we have).  Although this script only runs once, the uci calls that it makes are permanent, and will result in the installation of the specified parameters into /etc/config/wireless.
+
+In general, uci-defaults script works like this:
+
+To set some system defaults the first time the device boots, create a
+script in the folder /etc/uci-defaults/.  All scripts in that folder
+are automatically executed by /etc/init.d/S10boot and if they exited
+with code 0 deleted afterwards (scripts that did not exit with code 0
+are not deleted and will be re-executed during the next boot until 
+they also successfully exit).
+(End detailed digression)
+
+The best way to figure out how these files are interlinked is probably
+to look at how they are currently set up.

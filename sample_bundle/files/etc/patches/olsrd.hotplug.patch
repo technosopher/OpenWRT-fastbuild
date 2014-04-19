@@ -1,0 +1,11 @@
+--- 20-olsrd	2013-10-30 12:00:51.655141356 -0400
++++ 20-olsrd.new	2013-10-30 12:15:22.491126737 -0400
+@@ -327,7 +327,7 @@
+             ;;
+           0)
+             $DEBUG unset_olsrd_hna4 $INTERFACE
+-            $DEBUG set_olsrd_if $INTERFACE
++            $DEBUG unset_olsrd_if $INTERFACE
+             ;;
+         esac
+       ;;
