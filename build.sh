@@ -12,12 +12,14 @@
 # to get it to do want you want.  The script embeds several non-intuitive assumptions, which you may run afoul of if you try to go "off-script"
 # TODO: Add checks for validity of workspace, if downloads directory is usable.  Decompose functions further
 
+#Default variable and path assignments.  Any variable referenced in these assignments will be statically set if the surrounding definition takes the form VAR="", and will be dynamically interpreted each time it is referenced if the surrounding definition takes the form VAR=''.
+
 umask 002
-WORKSPACE="/tmp"
+WORKSPACE=$(readlink -f ./)
 BUILD_DIR="$WORKSPACE/build"
-TEMP_DIR="$WORKSPACE/openwrt-tmp"
-FETCH_SRC="cd $TEMP_DIR; git clone https://github.com/opentechinstitute/commotion-router.git; cd commotion-router; ./setup.sh; cd openwrt"
-#FETCH_SRC=". `pwd`/multioption_custom_image.sh $TEMP_DIR"
+TEMP_DIR="$WORKSPACE/tmp"
+FETCH_SRC='cd $TEMP_DIR; git clone https://github.com/opentechinstitute/commotion-router.git; cd commotion-router; ./setup.sh; cd openwrt'
+#FETCH_SRC="./config_bundle_loader.sh $TEMP_DIR"
 DOWNLOAD_DIR="$WORKSPACE/downloads"
 FINAL_BIN_DEST="$WORKSPACE/bin"
 LOCKFILE="$BUILD_DIR/.lock"
@@ -43,7 +45,7 @@ Usage:
 -p, --prepbuild
 	Script to be run after build tree is cleaned and repopulated with new feed info
 -s, --source
-        Exact command to be run (via eval) to fetch a working copy of the source code.  By default, this is a call to multioption_custom_image.sh
+        Exact command string or script file to be run to fetch a working copy of the source code.  By default, this is a call to multioption_custom_image.sh
 -t, --tempdir
 	Location to which temporary files will be downloaded
 -w, --workspace
@@ -211,7 +213,7 @@ function stop {
 export -f go stop
 
 if [ -x `echo $FETCH_SRC | cut -d ' ' -f 1` ]; then 
- FETCH_SRC=". $FETCH_SRC"
+ FETCH_SRC=". `readlink -f $FETCH_SRC`"
 else 
  FETCH_SRC="eval $FETCH_SRC"
 fi
@@ -235,13 +237,9 @@ if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
 else
  $FETCH_SRC
 fi
-#cd $SRC_DIR
-#cd "$REPO_NAME"
 
 #Fix for specific bug in serval package that extracts version info from git
 cp -rf ../.git* "$BUILD_DIR/$REPO_NAME/"
-
-#cd openwrt
 
 if [ "$INTERVENE" -gt 0 ]; then
  echo "Almost ready to build! Make any changes you wish to feeds, menuconfig, or specific files at the prompt below.  Your working (temporary) files will then be copied into the final build tree, and built."
@@ -270,21 +268,23 @@ else
 fi
 
 if [ "$INTERVENE" -gt 1 ]; then
- echo "The main OpenWRT build process is complete.  If you wish to check or extract anything in the build tree before it is cleaned up, do so now."
+ echo "The main OpenWRT build process is complete.  If you wish to check or extract anything in the build tree before images are copied and the build environment is cleaned up, do so now."
  intervene
 fi
 
-echo "Moving built binaries to $FINAL_BIN_DEST..."
 while true; do
- if [[ -e bin/ar71xx ]] && [[ -d "$FINAL_BIN_DEST" ]]; then 
+ echo "Moving built binaries to $FINAL_BIN_DEST..."
+ if [[ -e bin/ar71xx ]]; then 
   cp -rf bin/ar71xx "$FINAL_BIN_DEST"
-  chmod -Rf g+w "$FINAL_BIN_DEST"
-  cleanBuildTree
-  break
+  if [[ $? -eq 0 ]]; then 
+   chmod -Rf g+w "$FINAL_BIN_DEST"
+   cleanBuildTree
+   break
+  fi
  else 
- echo "Error copying images to $FINAL_BIN_DEST. Either the images were not created successfully or $FINAL_BIN_DEST is not a writable destination.  Now opening a shell so that you can investigate, modify $FINAL_BIN_DEST, and/or try to rebuild without reinitiating the entire process. Remember - you're still in the build process!  To get out of it, just type \"stop\"."
- intervene
- fi
+  echo "Error copying images to $FINAL_BIN_DEST. Perhaps the images were not created successfully or $FINAL_BIN_DEST is not a writable destination.  Now opening a shell so that you can investigate, modify $FINAL_BIN_DEST, and/or try to rebuild without reinitiating the entire process. Remember - you're still in the build process!  To get out of it, just type \"stop\"."
+  intervene
+  fi
 done
 echo "Done!"
 

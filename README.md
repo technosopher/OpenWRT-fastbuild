@@ -27,7 +27,7 @@ REQUIRED:
 -i, --intervene [$INTERVENE]
         Specify how often the automated process should drop into a shell to allow for manual intervention, on a scale from 0-3.  0 signifies 'never' and 3 signifies 'at every available opportunity'.  The default value is 3
 -s, --source [$FETCH\_SRC]
-        Exact command to be used to fetch a working copy of the source code.  By default, this is a call to ./multioption_custom_image.sh
+        Exact command to be used to fetch a working copy of the source code.  By default, this is a call to ./config-bundle-loader.sh
 -t, --tempdir [$TEMP\_DIR]
         Location to which temporary files will be downloaded
 -w, --workspace [$WORKSPACE]
@@ -56,15 +56,15 @@ OPTIONAL:
 
 ##Custom Images: Configuration Bundles
 
-The *multioption\_custom\_image.sh* script allows the build script to be called against a list of possible build configurations, which the user of this system can then choose from.  A single build configuration is called a bundle, and can take the form of a regular directory, a Git repository, or a compressed tar archive.  Bundles are registered with the build system by way of bundles.conf, which is a simple list with a couple of formatting tweaks.   
+The *config-bundle-loader.sh* script allows the build script to be called against a list of possible build configurations, which the user of this system can then choose from.  A single build configuration is called a bundle, and can take the form of a regular directory, a Git repository, or a compressed tar archive.  Bundles are registered with the build system by way of bundles.conf, which is a simple list with a couple of formatting tweaks.   
 
 Each line of the bundle list takes the form ```<bundle name> <bundle type>#<bundle location>. ```
  
 A config bundle consists of a folder with at least one the following (and often both):
-1.  A script, *configure.sh*, which does whatever is necessary to get the source code tree properly populated
+1.  A script, *configure.sh*, which does whatever is necessary to get the source code tree properly populated, and changes the working directory of the build process to the location of the makefile.
 2.  A directory, *files*, which contains configuration files to be copied on top of the populated source tree
 
-To invoke the configuration chooser during the course of the build process, simply set build.sh's $FETCH\_SRC (-s) paramater to ./multioption\_custom\_image.sh, and make sure that the bundle(s) you wish to import are listed in bundles.conf
+To invoke the configuration chooser during the course of the build process, simply set build.sh's $FETCH\_SRC (-s) paramater to ./config-bundle-loader.sh, and make sure that the bundle(s) you wish to import are listed in bundles.conf
 
 
 ##USAGE
