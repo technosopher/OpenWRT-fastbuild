@@ -24,7 +24,6 @@ LOCKFILE="$BUILD_DIR/.lock"
 INTERVENE=3
 CLEAN_ONLY=0
 #BUILD_OUTPUT_LOGFILE="$WORKSPACE/build.log"
-#CUSTOM_BUILD_HANDLER="$WORKSPACE/custom_build.sh"
 #FINISH_BUILD_HANDLER="$WORKSPACE/finish_build.sh"
 
 USAGE=$(cat <<END_OF_USAGE
@@ -36,7 +35,7 @@ Usage:
 -d, --downloaddir
 	Specify location of the downloads cache
 -i, --intervene
-        Specify how often the automated process should drop into a shell to allow for manual intervention, on a scale from 0-3.  0 signifies 'never' and 3 signifies 'at every available opportunity'
+	Specify degree of manual intervention desired from 0-3, where 0 signifies none (for scripting) and 3 signifies a lot
 -f, --finishbuild
 	Script to be run at the completion of the build process
 -o, --output
@@ -211,26 +210,33 @@ function stop {
 }
 export -f go stop
 
+if [ -x `echo $FETCH_SRC | cut -d ' ' -f 1` ]; then 
+ FETCH_SRC=". $FETCH_SRC"
+else 
+ FETCH_SRC="eval $FETCH_SRC"
+fi
+
 cleanBuildTree
 if [ "$CLEAN_ONLY" -eq 1 ]; then
  rm "$LOCKFILE"
  exit
 fi
 
-
-echo "Fetching and unpacking source into $TEMP_DIR..."
-if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
- eval $FETCH_SRC 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
-else
- eval $FETCH_SRC
-fi
-#cd "$REPO_NAME"
-
 #if [ "$INTERVENE" -gt 2 ]; then
 # echo "Make changes to ./setup or any other part of the initial build tree before ./setup runs."
 # intervene
 #fi
 
+echo "Fetching source to $TEMP_DIR..."
+pushd "$TEMP_DIR"
+echo "Fetching and unpacking source into $TEMP_DIR..."
+if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
+ $FETCH_SRC 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
+else
+ $FETCH_SRC
+fi
+#cd $SRC_DIR
+#cd "$REPO_NAME"
 
 #Fix for specific bug in serval package that extracts version info from git
 cp -rf ../.git* "$BUILD_DIR/$REPO_NAME/"
@@ -257,12 +263,6 @@ cd "$BUILD_DIR/$REPO_NAME/openwrt"
 rm -rf "$SRC_DIR"
 #rm -rf "$TEMP_DIR/$REPO_NAME"
 
-#if [ -e "$CUSTOM_BUILD_HANDLER" ]; then
-# . "$CUSTOM_BUILD_HANDLER"
-#elif [ -n "$CUSTOM_BUILD_HANDLER" ]; then
-#echo "Build customization script, $CUSTOM_BUILD_HANDLER, does not exist! Skipping..."
-#fi
-
 if [ -n "$BUILD_OUTPUT_LOGFILE" ]; then
  make -j 13 2>&1 | tee "$BUILD_OUTPUT_LOGFILE"
 else
@@ -274,16 +274,22 @@ if [ "$INTERVENE" -gt 1 ]; then
  intervene
 fi
 
-echo "Moving built binaries to $FINAL_BIN_DEST"
-if [ -e bin/ar71xx ]; then #TODO: Add a check to make sure that BIN_DEST exists
- cp -rf bin/ar71xx "$FINAL_BIN_DEST"
- chmod -Rf g+w "$FINAL_BIN_DEST"
-fi
+echo "Moving built binaries to $FINAL_BIN_DEST..."
+while true; do
+ if [[ -e bin/ar71xx ]] && [[ -d "$FINAL_BIN_DEST" ]]; then 
+  cp -rf bin/ar71xx "$FINAL_BIN_DEST"
+  chmod -Rf g+w "$FINAL_BIN_DEST"
+  cleanBuildTree
+  break
+ else 
+ echo "Error copying images to $FINAL_BIN_DEST. Either the images were not created successfully or $FINAL_BIN_DEST is not a writable destination.  Now opening a shell so that you can investigate, modify $FINAL_BIN_DEST, and/or try to rebuild without reinitiating the entire process. Remember - you're still in the build process!  To get out of it, just type \"stop\"."
+ intervene
+ fi
+done
 echo "Done!"
 
-cleanBuildTree
 chmod -Rf g+w "$BUILD_DIR/$REPO_NAME"
-find "$DOWNLOAD_DIR" ! -perm -g+w | xargs chmod g+w
+find "$DOWNLOAD_DIR" -user `whoami` ! -perm -g+w | xargs chmod g+w
 rm "$LOCKFILE"
 
 if [ -e "$FINISH_BUILD_HANDLER" ]; then

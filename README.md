@@ -7,6 +7,8 @@ This collection of scripts comprises a system that streamlines and vastly speeds
 * A configuration bundle selection wizard that makes it quick and easy to import various build configurations
 Collectively, these additions bring the time needed to complete from-scratch rebuilds of OpenWRT down from around 1.5 hours to approximately 6 minutes.  
 
+WARNING: All parameters must be specified as absolute paths!  These scripts do far too much directory changing to allow any assumptions to be made about what directory a process is likely to be in at any given time.  
+
 ##Setup
 The greatest speed enhancements offered by this bundle depend on the existance of a pre-built buildroot environment of the desired architecture.  Accordingly, *prepare\_build\_tree.sh* sets up a build environment in a RAMdisk and runs an initial build of commotion-router.  Each build tree requires 7 GB of disk space at peak usage, and this script accordingly will attempt to allocate a 7 GB RAMdisk unless you comment out that particular stanza of the code.  It should be noted that even without a RAMdisk, having a pre-populated build tree with cached tools and toolchain directories will vastly speed up the process of rebuilding OpenWRT
 

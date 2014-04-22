@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BUNDLES_LIST=./bundles.conf
+BUNDLES_LIST="$WORKSPACE/bundles.conf"
 BUNDLE_NAMES=()
 BUNDLE_LOCATIONS=()
 
