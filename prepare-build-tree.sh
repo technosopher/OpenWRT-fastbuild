@@ -1,4 +1,4 @@
-DOWNLOADS_DIR="/tmp/downloads"
+DOWNLOADS_DIR="$TREE/tmp/downloads"
 TREE=$1
 MOUNT_INFO=`mount`
 
@@ -23,6 +23,7 @@ if [ -n $TREE/commotion-router ]; then
 	rm -rf $TREE/commotion-router
 fi
 mkdir -p $TREE/tmp/downloads
+cp -ra /tmp/downloads/* $DOWNLOADS_DIR
 git clone https://github.com/opentechinstitute/commotion-router
 cd $TREE/commotion-router
 ./setup.sh
