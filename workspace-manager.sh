@@ -19,7 +19,7 @@ done
 
 if [ -n "$ACTIVE_BUILDTREE" ]; then
         sudo -u build cp --preserve=timestamps -r $SHARED_DOWNLOAD_DIR "$ACTIVE_BUILDTREE/tmp"
-	sudo -u build "$@" -b $ACTIVE_BUILDTREE -l "$ACTIVE_BUILDTREE/$USER.lock" -t "$ACTIVE_BUILDTREE/tmp" -d "$ACTIVE_BUILDTREE/tmp/downloads" --bindest "$BUILDTREE_ROOT/bin/$USER-`date +%F--%H.%M.%S`"
+	sudo -u build "$@" -b $ACTIVE_BUILDTREE/build -l "$ACTIVE_BUILDTREE/$USER.lock" -t "$ACTIVE_BUILDTREE/tmp" -d "$ACTIVE_BUILDTREE/tmp/downloads" --bindest "$BUILDTREE_ROOT/bin/$USER-`date +%F--%H.%M.%S`"
 	if [ $? -eq 0 ]; then
 		if [ -e "$ACTIVE_BUILDTREE/$USER.lock" ]; then
 			sudo -u build rm "$ACTIVE_BUILDTREE/$USER.lock"
